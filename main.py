@@ -1,7 +1,11 @@
+from flask import Flask, render_template, request, redirect, url_for
 import mysql.connector
 
-# Database connection function
-def connect_to_db():
+# Ye line miss ho rahi thi aapki file mein
+app = Flask(__name__)
+
+# Database Connection Function
+def get_db_connection():
     return mysql.connector.connect(
         host="localhost",
         user="root",
@@ -9,37 +13,30 @@ def connect_to_db():
         database="gun_shop_db"
     )
 
-# Nayi Gun add karne ka function
-def add_weapon():
-    conn = connect_to_db()
-    cursor = conn.cursor()
-    print("\n--- Enter Weapon Details ---")
-    model = input("Model: ")
-    brand = input("Brand: ")
-    price = input("Price: ")
+@app.route('/')
+def login_page():
+    return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    if username == "admin" and password == "1234":
+        return redirect(url_for('dashboard'))
+    return "Invalid Credentials! <a href='/'>Try again</a>"
+
+@app.route('/dashboard')
+def dashboard():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
     
-    query = "INSERT INTO weapons (model_name, brand, price) VALUES (%s, %s, %s)"
-    cursor.execute(query, (model, brand, price))
-    conn.commit()
-    print("Gun successfully saved in Database!")
-    conn.close()
-
-# Saari Guns dekhne ka function
-def view_weapons():
-    conn = connect_to_db()
-    cursor = conn.cursor()
+    # Ab ye database se data uthaye ga
     cursor.execute("SELECT * FROM weapons")
-    print("\n--- Current Inventory ---")
-    for x in cursor.fetchall():
-        print(x)
+    db_items = cursor.fetchall()
+    
+    cursor.close()
     conn.close()
+    return render_template('index.html', items=db_items)
 
-if __name__ == "__main__":
-    while True:
-        print("\n1. View Inventory")
-        print("2. Add New Weapon")
-        print("3. Exit")
-        choice = input("Select Option: ")
-        if choice == '1': view_weapons()
-        elif choice == '2': add_weapon()
-        elif choice == '3': break
+if __name__ == '__main__':
+    app.run(debug=True)
